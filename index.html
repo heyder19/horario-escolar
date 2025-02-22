@@ -4,149 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Horario Escolar</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.0/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.0.23/dist/tailwind.min.js"></script>
     <style>
         body {
-            background-color: #f8f9fa;
-            transition: background-color 0.3s, color 0.3s;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .container {
-            flex: 1;
-            max-width: 100%;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-        .hour-label {
-            font-weight: bold;
-        }
-        select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        .filled {
-            background-color: #d4edda; /* Color de fondo para campos llenos */
-            border-color: #28a745;
-        }
-        .locked {
-            position: relative;
-        }
-        .locked::after {
-            content: "🔒"; /* Icono de candado */
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-        }
-        .btn-group {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        .navbar {
-            margin-bottom: 20px;
-        }
-        .dark-mode {
-            background-color: #343a40;
-            color: white;
-        }
-        .recess {
-            font-weight: bold;
-            text-align: center;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .btn-outline-secondary {
-            font-size: 18px;
-            padding: 12px 24px;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-            font-size: 18px;
-            padding: 12px 24px;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .recess {
-            font-size: 16px;
-            padding: 8px 0;
-        }
-        .navbar-toggler {
-            border: none;
-        }
-        .navbar-nav {
-            flex-direction: row;
-        }
-        .navbar-nav .nav-item {
-            margin-right: 15px;
-        }
-        @media (max-width: 768px) {
-            .btn-group {
-                flex-direction: column;
-            }
-            .navbar-nav {
-                width: 100%;
-                text-align: center;
-            }
-            .navbar-nav .nav-item {
-                margin: 5px 0;
-            }
+            background-color: #f3f4f6;
         }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto w-100">
-                    <li class="nav-item"><a class="nav-link" href="#">Cuenta</a></li>
-                    <li class="nav-item"><button class="nav-link btn btn-link" id="toggle-dark-mode">Modo Oscuro</button></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Acerca de</a></li>
-                </ul>
+<body class="font-sans bg-gray-100">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md px-4 py-3" x-data="{ open: false }">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="text-2xl font-semibold text-gray-800">Horario Escolar</div>
+            <div class="lg:hidden">
+                <button @click="open = !open" class="text-gray-800 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+            <div :class="{'block': open, 'hidden': !open}" class="lg:flex space-x-6">
+                <a href="#" class="text-gray-800 hover:text-blue-500">Cuenta</a>
+                <a href="#" class="text-gray-800 hover:text-blue-500">Acerca de</a>
+                <button id="toggle-dark-mode" class="text-gray-800 hover:text-blue-500">Modo Oscuro</button>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <h2 class="text-center mb-3" id="current-date">Fecha</h2>
-        
-        <div id="schedule"></div>
-        
-        <div class="btn-group">
-            <button class="btn btn-outline-secondary" id="prev-day">Anterior</button>
-            <button class="btn btn-primary" id="save-btn">Guardar</button>
-            <button class="btn btn-outline-secondary" id="next-day">Siguiente</button>
+    <!-- Main content -->
+    <div class="container mx-auto px-4 py-6">
+        <h2 class="text-center text-xl font-semibold text-gray-700" id="current-date"></h2>
+
+        <!-- Schedule Form -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="schedule"></div>
+
+        <!-- Navigation buttons -->
+        <div class="flex justify-between mt-6">
+            <button id="prev-day" class="px-6 py-2 bg-gray-200 rounded-md text-gray-800 font-semibold hover:bg-gray-300">Anterior</button>
+            <button id="save-btn" class="px-6 py-2 bg-blue-500 text-white rounded-md font-semibold hover:bg-blue-600">Guardar</button>
+            <button id="next-day" class="px-6 py-2 bg-gray-200 rounded-md text-gray-800 font-semibold hover:bg-gray-300">Siguiente</button>
         </div>
     </div>
 
-    <!-- Modal de Confirmación -->
-    <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="saveModalLabel">Confirmar Guardado</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Los cambios se han guardado correctamente.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
+    <!-- Modal -->
+    <div id="saveModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 class="text-xl font-semibold text-center text-green-600">Cambios Guardados</h3>
+            <div class="mt-4 text-center">
+                <button onclick="closeModal()" class="px-4 py-2 bg-green-500 text-white rounded-md">Cerrar</button>
             </div>
         </div>
     </div>
@@ -158,22 +65,21 @@
         const nextDayBtn = document.getElementById('next-day');
         const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
         const saveBtn = document.getElementById('save-btn');
-        
+        const saveModal = document.getElementById('saveModal');
+
         const weekHours = {
             normal: [12, 1, 2, "RECESO", 4, 5, 6],
             wednesday: [6, 7, 8, "RECESO", 10, 11, 12]
         };
-        
+
         const subjects = ["Matemáticas", "Historia", "Física", "Química", "Inglés", "Biología"];
         const grades = ["SEPTIMO", "OCTAVO", "NOVENO", "DECIMO", "UNDECIMO"];
-        
-        // Cargar el estado guardado desde localStorage
+
         function loadState() {
             const savedState = JSON.parse(localStorage.getItem('scheduleState')) || {};
             return savedState;
         }
 
-        // Guardar el estado en localStorage
         function saveState() {
             const state = {};
             const selects = schedule.querySelectorAll('select');
@@ -208,23 +114,24 @@
         function generateSchedule() {
             schedule.innerHTML = '';
             const hours = currentDate.getDay() === 3 ? weekHours.wednesday : weekHours.normal;
-            
+
             hours.forEach((hour, index) => {
                 const row = document.createElement('div');
-                row.className = "row mb-2";
+                row.className = "col-span-1 md:col-span-2 lg:col-span-1 bg-white shadow-md rounded-lg p-4";
                 if (hour === "RECESO") {
-                    row.innerHTML = `<div class="col-12 recess">${hour}</div>`;
+                    row.innerHTML = `<div class="text-center text-gray-600 font-semibold">${hour}</div>`;
                 } else {
                     row.innerHTML = `
-                        <div class="col-2 hour-label">${hour}:00</div>
-                        <div class="col-5">
-                            <select class="form-select" data-index="${index}">
+                        <div class="mb-4">
+                            <label class="block text-gray-600 font-semibold">Hora: ${hour}:00</label>
+                            <select class="w-full p-2 mt-2 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-index="${index}">
                                 <option value="">Seleccionar Asignatura</option>
                                 ${subjects.map(subject => `<option>${subject}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="col-5">
-                            <select class="form-select" data-grade="${index}">
+                        <div class="mb-4">
+                            <label class="block text-gray-600 font-semibold">Grado</label>
+                            <select class="w-full p-2 mt-2 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-grade="${index}">
                                 <option value="">Seleccionar Grado</option>
                                 ${grades.map(grade => `<option>${grade}</option>`).join('')}
                             </select>
@@ -234,7 +141,6 @@
                 schedule.appendChild(row);
             });
 
-            // Rellenar los campos con el estado guardado
             const savedState = loadState();
             const selects = schedule.querySelectorAll('select');
             selects.forEach((select, index) => {
@@ -245,8 +151,7 @@
                         select.setAttribute('data-grade', grade);
                     }
                     if (subject) {
-                        select.classList.add('filled');
-                        select.classList.add('locked');
+                        select.classList.add('bg-green-100');
                     }
                 }
             });
@@ -265,15 +170,18 @@
         });
 
         toggleDarkModeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('bg-gray-900');
+            document.body.classList.toggle('text-white');
         });
 
         saveBtn.addEventListener('click', () => {
             saveState();
-            const modal = new bootstrap.Modal(document.getElementById('saveModal'));
-            modal.show();
+            saveModal.classList.remove('hidden');
         });
+
+        function closeModal() {
+            saveModal.classList.add('hidden');
+        }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
