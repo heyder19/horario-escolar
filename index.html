@@ -31,7 +31,7 @@
     </div>
 
     <!-- Horarios -->
-    <div id="horarios-container" class="grid grid-cols-3 gap-4"></div>
+    <div id="horarios-container" class="space-y-4"></div>
 
     <!-- Navegación -->
     <div class="flex justify-between mt-8">
@@ -87,12 +87,13 @@
     
     const esMiercoles = diaSemana === 3;
     const horarios = generarHorarios(diaSemana);
+    const esMobile = window.innerWidth < 768;
 
     horarios.forEach((horario, index) => {
       const item = document.createElement('div');
       if (horario.receso) {
-        // Receso ocupa 3 columnas (excepto miércoles, donde ocupa 2)
-        item.className = esMiercoles ? 'col-span-2 receso p-4 rounded-lg' : 'col-span-3 receso p-4 rounded-lg';
+        // Receso ocupa todo el ancho en móviles
+        item.className = 'receso p-4 rounded-lg';
         item.innerHTML = `<p class="text-lg font-semibold">RECESO</p>`;
       } else {
         // Periodos normales
@@ -104,7 +105,7 @@
 
         // Contenedor para asignatura y grado
         const contenedorSelects = document.createElement('div');
-        contenedorSelects.className = 'space-y-2';
+        contenedorSelects.className = esMobile ? 'space-y-2' : 'grid grid-cols-2 gap-4';
 
         // Select para asignatura
         const selectAsignatura = crearSelect('asignatura', index, [
