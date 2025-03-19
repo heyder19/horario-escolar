@@ -1,187 +1,210 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horario Escolar</title>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.0/dist/cdn.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.0.23/dist/tailwind.min.js"></script>
-    <style>
-        body {
-            background-color: #f3f4f6;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App de Horarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    .receso { background-color: #fef3c7; border-left: 4px solid #f59e0b; }
+    .bloqueado { background-color: #f3f4f6; cursor: not-allowed; }
+    .disabled { opacity: 0.5; pointer-events: none; }
+  </style>
 </head>
-<body class="font-sans bg-gray-100">
+<body class="bg-gray-100 font-sans">
+  <!-- Modal PIN -->
+  <div id="modal-pin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+      <h2 class="text-xl font-bold mb-4">Ingrese su PIN</h2>
+      <input type="number" id="input-pin" class="w-full p-2 border rounded-lg mb-4" placeholder="PIN (0-10)">
+      <button id="btn-ingresar" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full">Ingresar</button>
+    </div>
+  </div>
 
-    <!-- Navbar -->
-    <nav class="bg-white shadow-md px-4 py-3" x-data="{ open: false }">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="text-2xl font-semibold text-gray-800">Horario Escolar</div>
-            <div class="lg:hidden">
-                <button @click="open = !open" class="text-gray-800 focus:outline-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-            </div>
-            <div :class="{'block': open, 'hidden': !open}" class="lg:flex space-x-6">
-                <a href="#" class="text-gray-800 hover:text-blue-500">Cuenta</a>
-                <a href="#" class="text-gray-800 hover:text-blue-500">Acerca de</a>
-                <button id="toggle-dark-mode" class="text-gray-800 hover:text-blue-500">Modo Oscuro</button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main content -->
-    <div class="container mx-auto px-4 py-6">
-        <h2 class="text-center text-xl font-semibold text-gray-700" id="current-date"></h2>
-
-        <!-- Schedule Form -->
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="schedule"></div>
-
-        <!-- Navigation buttons -->
-        <div class="flex justify-between mt-6">
-            <button id="prev-day" class="px-6 py-2 bg-gray-200 rounded-md text-gray-800 font-semibold hover:bg-gray-300">Anterior</button>
-            <button id="save-btn" class="px-6 py-2 bg-blue-500 text-white rounded-md font-semibold hover:bg-blue-600">Guardar</button>
-            <button id="next-day" class="px-6 py-2 bg-gray-200 rounded-md text-gray-800 font-semibold hover:bg-gray-300">Siguiente</button>
-        </div>
+  <!-- Contenido principal -->
+  <div id="contenido-principal" class="container mx-auto p-4 hidden">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-blue-600 mb-2">Gestión de Horarios</h1>
+      <p id="fecha-actual" class="text-xl font-semibold text-gray-700"></p>
     </div>
 
-    <!-- Modal -->
-    <div id="saveModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 class="text-xl font-semibold text-center text-green-600">Cambios Guardados</h3>
-            <div class="mt-4 text-center">
-                <button onclick="closeModal()" class="px-4 py-2 bg-green-500 text-white rounded-md">Cerrar</button>
-            </div>
-        </div>
+    <!-- Horarios -->
+    <div id="horarios-container" class="grid grid-cols-3 gap-4"></div>
+
+    <!-- Navegación -->
+    <div class="flex justify-between mt-8">
+      <button id="btn-anterior" class="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 flex-1 mx-2">Día Anterior</button>
+      <button id="btn-guardar" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex-1 mx-2">Guardar</button>
+      <button id="btn-siguiente" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 flex-1 mx-2">Día Siguiente</button>
     </div>
+  </div>
 
-    <script>
-        const schedule = document.getElementById('schedule');
-        const dateElement = document.getElementById('current-date');
-        const prevDayBtn = document.getElementById('prev-day');
-        const nextDayBtn = document.getElementById('next-day');
-        const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
-        const saveBtn = document.getElementById('save-btn');
-        const saveModal = document.getElementById('saveModal');
+<script>
+  let fechaActual = new Date(); // Fecha actual
+  let usuarioPin = null;
+  const usuariosSelecciones = JSON.parse(localStorage.getItem('usuariosSelecciones')) || {};
 
-        const weekHours = {
-            normal: [12, 1, 2, "RECESO", 4, 5, 6],
-            wednesday: [6, 7, 8, "RECESO", 10, 11, 12]
-        };
+  // Límites de navegación
+  const limiteDias = 10; // 10 días anteriores y 10 días siguientes
+  let contadorDias = 0; // Contador para rastrear los días navegados
 
-        const subjects = ["Matemáticas", "Historia", "Física", "Química", "Inglés", "Biología"];
-        const grades = ["SEPTIMO", "OCTAVO", "NOVENO", "DECIMO", "UNDECIMO"];
+  // Funciones auxiliares
+  const formatearFecha = fecha => fecha.toLocaleDateString('es-ES', 
+    { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        function loadState() {
-            const savedState = JSON.parse(localStorage.getItem('scheduleState')) || {};
-            return savedState;
-        }
+  const esFinDeSemana = fecha => [0, 6].includes(fecha.getDay());
 
-        function saveState() {
-            const state = {};
-            const selects = schedule.querySelectorAll('select');
-            selects.forEach((select, index) => {
-                state[index] = {
-                    subject: select.value,
-                    grade: select.dataset.grade || ''
-                };
-            });
-            localStorage.setItem('scheduleState', JSON.stringify(state));
-        }
+  const generarHorarios = diaSemana => {
+    if(diaSemana === 3) { // Miércoles
+      return [
+        {periodo: "12:00 md - 12:45 md", receso: false},
+        {periodo: "12:45 md - 1:30 pm", receso: false},
+        {periodo: "1:30 pm - 2:00 pm", receso: false},
+        {periodo: "2:00 pm - 2:15 pm", receso: true},
+        {periodo: "2:15 pm - 3:15 pm", receso: false},
+        {periodo: "3:15 pm - 4:00 pm", receso: false},
+        {periodo: "4:00 pm - 4:30 pm", receso: false},
+        {periodo: "4:30 pm - 4:45 pm", receso: false}
+      ];
+    }
+    return [
+      {periodo: "1 (12:00 md - 12:45 md)", receso: false},
+      {periodo: "2 (12:45 md - 1:30 pm)", receso: false},
+      {periodo: "3 1:30 pm - 2:15 pm", receso: false},
+      {periodo: "2:15 pm - 2:30 pm", receso: true},
+      {periodo: "4: 2:30 pm - 3:15 pm", receso: false},
+      {periodo: "5: 3:15 pm - 4:00 pm", receso: false},
+      {periodo: "6: 4:00 pm - 4:45 pm", receso: false}
+    ];
+  };
 
-        function getValidDate(date, direction = 0) {
-            date.setDate(date.getDate() + direction);
-            while (date.getDay() === 0 || date.getDay() === 6) {
-                date.setDate(date.getDate() + (direction > 0 ? 1 : -1));
-            }
-            return date;
-        }
+  // Renderizado adaptativo
+  const renderizarHorarios = diaSemana => {
+    const container = document.getElementById('horarios-container');
+    container.innerHTML = '';
+    
+    const esMiercoles = diaSemana === 3;
+    const horarios = generarHorarios(diaSemana);
 
-        let currentDate = new Date();
-        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
-            currentDate = getValidDate(currentDate, 1);
-        }
+    horarios.forEach((horario, index) => {
+      const item = document.createElement('div');
+      if (horario.receso) {
+        // Receso ocupa 3 columnas (excepto miércoles, donde ocupa 2)
+        item.className = esMiercoles ? 'col-span-2 receso p-4 rounded-lg' : 'col-span-3 receso p-4 rounded-lg';
+        item.innerHTML = `<p class="text-lg font-semibold">RECESO</p>`;
+      } else {
+        // Periodos normales
+        item.className = 'bg-white p-4 rounded-lg shadow-md';
+        const periodo = document.createElement('p');
+        periodo.className = 'font-medium text-gray-800 mb-2';
+        periodo.textContent = horario.periodo;
+        item.appendChild(periodo);
 
-        function updateDateDisplay() {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            dateElement.innerText = currentDate.toLocaleDateString('es-ES', options);
-            generateSchedule();
-        }
+        // Contenedor para asignatura y grado
+        const contenedorSelects = document.createElement('div');
+        contenedorSelects.className = 'space-y-2';
 
-        function generateSchedule() {
-            schedule.innerHTML = '';
-            const hours = currentDate.getDay() === 3 ? weekHours.wednesday : weekHours.normal;
+        // Select para asignatura
+        const selectAsignatura = crearSelect('asignatura', index, [
+          { value: '', text: 'Seleccionar asignatura' },
+          { value: 'lyl', text: 'Lengua y Literatura' },
+          { value: 'matematica', text: 'Matemática' },
+          { value: 'ccnn', text: 'Ciencias Naturales' }
+        ]);
 
-            hours.forEach((hour, index) => {
-                const row = document.createElement('div');
-                row.className = "col-span-1 md:col-span-2 lg:col-span-1 bg-white shadow-md rounded-lg p-4";
-                if (hour === "RECESO") {
-                    row.innerHTML = `<div class="text-center text-gray-600 font-semibold">${hour}</div>`;
-                } else {
-                    row.innerHTML = `
-                        <div class="mb-4">
-                            <label class="block text-gray-600 font-semibold">Hora: ${hour}:00</label>
-                            <select class="w-full p-2 mt-2 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-index="${index}">
-                                <option value="">Seleccionar Asignatura</option>
-                                ${subjects.map(subject => `<option>${subject}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-gray-600 font-semibold">Grado</label>
-                            <select class="w-full p-2 mt-2 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-grade="${index}">
-                                <option value="">Seleccionar Grado</option>
-                                ${grades.map(grade => `<option>${grade}</option>`).join('')}
-                            </select>
-                        </div>
-                    `;
-                }
-                schedule.appendChild(row);
-            });
+        // Select para grado
+        const selectGrado = crearSelect('grado', index, [
+          { value: '', text: 'Seleccionar grado' },
+          { value: '1', text: '1er Grado' },
+          { value: '2', text: '2do Grado' },
+          { value: '3', text: '3er Grado' }
+        ]);
 
-            const savedState = loadState();
-            const selects = schedule.querySelectorAll('select');
-            selects.forEach((select, index) => {
-                if (savedState[index]) {
-                    const { subject, grade } = savedState[index];
-                    select.value = subject;
-                    if (grade) {
-                        select.setAttribute('data-grade', grade);
-                    }
-                    if (subject) {
-                        select.classList.add('bg-green-100');
-                    }
-                }
-            });
-        }
+        contenedorSelects.appendChild(selectAsignatura);
+        contenedorSelects.appendChild(selectGrado);
+        item.appendChild(contenedorSelects);
+      }
+      container.appendChild(item);
+    });
+  };
 
-        updateDateDisplay();
+  const crearSelect = (tipo, index, opciones) => {
+    const select = document.createElement('select');
+    select.className = 'w-full p-2 border rounded-lg';
+    select.dataset.tipo = tipo;
+    select.dataset.index = index;
 
-        prevDayBtn.addEventListener('click', () => {
-            currentDate = getValidDate(currentDate, -1);
-            updateDateDisplay();
-        });
+    // Agregar opciones
+    opciones.forEach(opcion => {
+      const option = document.createElement('option');
+      option.value = opcion.value;
+      option.textContent = opcion.text;
+      select.appendChild(option);
+    });
 
-        nextDayBtn.addEventListener('click', () => {
-            currentDate = getValidDate(currentDate, 1);
-            updateDateDisplay();
-        });
+    // Lógica de guardado y bloqueo
+    const seleccionGuardada = usuariosSelecciones[usuarioPin]?.[fechaActual.toISOString()]?.[index]?.[tipo];
+    if (seleccionGuardada) select.value = seleccionGuardada;
+    
+    select.onchange = () => guardarSeleccion(index, tipo, select.value);
+    
+    return select;
+  };
 
-        toggleDarkModeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('bg-gray-900');
-            document.body.classList.toggle('text-white');
-        });
+  const guardarSeleccion = (index, tipo, valor) => {
+    if (!usuariosSelecciones[usuarioPin]) usuariosSelecciones[usuarioPin] = {};
+    const fechaKey = fechaActual.toISOString();
+    
+    usuariosSelecciones[usuarioPin][fechaKey] = usuariosSelecciones[usuarioPin][fechaKey] || [];
+    usuariosSelecciones[usuarioPin][fechaKey][index] = usuariosSelecciones[usuarioPin][fechaKey][index] || {};
+    usuariosSelecciones[usuarioPin][fechaKey][index][tipo] = valor;
+    
+    localStorage.setItem('usuariosSelecciones', JSON.stringify(usuariosSelecciones));
+  };
 
-        saveBtn.addEventListener('click', () => {
-            saveState();
-            saveModal.classList.remove('hidden');
-        });
+  // Navegación entre días
+  const actualizarFecha = (incremento) => {
+    let contador = 0;
+    while (contador < 5) {
+      fechaActual.setDate(fechaActual.getDate() + incremento);
+      if (!esFinDeSemana(fechaActual)) {
+        contadorDias += incremento;
+        break;
+      }
+    }
+    
+    // Actualizar la interfaz
+    document.getElementById('fecha-actual').textContent = formatearFecha(fechaActual);
+    renderizarHorarios(fechaActual.getDay());
 
-        function closeModal() {
-            saveModal.classList.add('hidden');
-        }
-    </script>
+    // Deshabilitar botones si se alcanzan los límites
+    document.getElementById('btn-anterior').classList.toggle('disabled', contadorDias <= -limiteDias);
+    document.getElementById('btn-siguiente').classList.toggle('disabled', contadorDias >= limiteDias);
+  };
+
+  // Event Listeners
+  document.getElementById('btn-ingresar').addEventListener('click', () => {
+    const pin = document.getElementById('input-pin').value;
+    if (pin >= 0 && pin <= 10) {
+      usuarioPin = pin;
+      document.getElementById('modal-pin').classList.add('hidden');
+      document.getElementById('contenido-principal').classList.remove('hidden');
+      document.getElementById('fecha-actual').textContent = formatearFecha(fechaActual);
+      renderizarHorarios(fechaActual.getDay());
+    }
+  });
+
+  document.getElementById('btn-anterior').addEventListener('click', () => {
+    if (contadorDias > -limiteDias) actualizarFecha(-1);
+  });
+
+  document.getElementById('btn-siguiente').addEventListener('click', () => {
+    if (contadorDias < limiteDias) actualizarFecha(1);
+  });
+
+  window.addEventListener('resize', () => renderizarHorarios(fechaActual.getDay()));
+</script>
 </body>
 </html>
